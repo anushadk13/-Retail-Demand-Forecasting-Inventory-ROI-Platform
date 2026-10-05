@@ -1,0 +1,15 @@
+{
+  "name": "Daily holiday ingest",
+  "nodes": [
+    {"parameters": {"rule": {"interval": [{"field": "days", "daysInterval": 1}]}},
+     "name": "Schedule", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0]},
+    {"parameters": {"url": "=https://date.nager.at/api/v3/PublicHolidays/{{ $now.year }}/US", "options": {}},
+     "name": "Fetch US holidays", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [240, 0]},
+    {"parameters": {"command": "cd /path/to/project && .venv/bin/python -m src.ingest.fetch_holidays"},
+     "name": "Load into raw.external_holidays", "type": "n8n-nodes-base.executeCommand", "typeVersion": 1, "position": [480, 0]}
+  ],
+  "connections": {
+    "Schedule": {"main": [[{"node": "Fetch US holidays", "type": "main", "index": 0}]]},
+    "Fetch US holidays": {"main": [[{"node": "Load into raw.external_holidays", "type": "main", "index": 0}]]}
+  }
+}

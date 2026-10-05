@@ -1,0 +1,14 @@
+# dev and prod are separate schemas in the same DuckDB file (swap for postgres/snowflake in prod).
+retail_dw:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('WAREHOUSE_PATH', '../warehouse/retail.duckdb') }}"
+      schema: dev
+      threads: 4
+    prod:
+      type: duckdb
+      path: "{{ env_var('WAREHOUSE_PATH', '../warehouse/retail.duckdb') }}"
+      schema: prod
+      threads: 4

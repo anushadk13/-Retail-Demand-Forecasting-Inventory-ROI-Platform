@@ -1,0 +1,18 @@
+{
+  "name": "Forecast drift and stockout alerts",
+  "nodes": [
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 7 * * *"}]}},
+     "name": "Every morning", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0]},
+    {"parameters": {"command": "cd /path/to/project && .venv/bin/python -m src.alerts.alerts"},
+     "name": "Run alert checks", "type": "n8n-nodes-base.executeCommand", "typeVersion": 1, "position": [240, 0]},
+    {"parameters": {"conditions": {"string": [{"value1": "={{ $json.stdout }}", "operation": "notContains", "value2": "No alerts."}]}},
+     "name": "Any alerts?", "type": "n8n-nodes-base.if", "typeVersion": 1, "position": [480, 0]},
+    {"parameters": {"sendTo": "ops-team@example.com", "subject": "Forecast alerts", "message": "={{ $json.stdout }}"},
+     "name": "Email ops team", "type": "n8n-nodes-base.emailSend", "typeVersion": 2, "position": [720, 0]}
+  ],
+  "connections": {
+    "Every morning": {"main": [[{"node": "Run alert checks", "type": "main", "index": 0}]]},
+    "Run alert checks": {"main": [[{"node": "Any alerts?", "type": "main", "index": 0}]]},
+    "Any alerts?": {"main": [[{"node": "Email ops team", "type": "main", "index": 0}]]}
+  }
+}

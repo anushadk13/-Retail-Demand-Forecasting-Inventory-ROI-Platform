@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  WAREHOUSE_PATH: ${{ github.workspace }}/warehouse/retail.duckdb
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Lint Python (ruff)
+        run: ruff check .
+      - name: Unit tests (pytest)
+        run: pytest -q
+      - name: Build sample data + raw layer
+        run: |
+          python -m src.ingest.generate_sample --days 500 --items-per-dept 3
+          python -m src.ingest.load_raw --sample
+      - name: Lint SQL (sqlfluff)
+        run: sqlfluff lint dbt_project/models dbt_project/tests
+      - name: dbt build + tests (dev schema)
+        working-directory: dbt_project
+        run: dbt build --profiles-dir . --target dev
+
+  deploy-prod:
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Load raw data
+        run: |
+          python -m src.ingest.generate_sample
+          python -m src.ingest.load_raw --sample
+      # The prod target is a separate schema. For a real deployment, point profiles.yml at
+      # Postgres/Snowflake and inject credentials from GitHub secrets (e.g. secrets.DBT_PROD_PASSWORD).
+      - name: dbt build (prod schema)
+        working-directory: dbt_project
+        run: dbt build --profiles-dir . --target prod
+      - name: Train and publish forecasts to prod
+        env:
+          WAREHOUSE_SCHEMA: prod
+        run: python -m src.models.train

@@ -1,0 +1,16 @@
+version: 2
+models:
+  - name: stg_calendar
+    columns:
+      - name: d
+        tests: [unique, not_null]
+      - name: full_date
+        tests: [unique, not_null]
+  - name: stg_prices
+    columns:
+      - name: sell_price
+        tests: [not_null]
+  - name: stg_sales_wide
+    columns:
+      - name: id
+        tests: [unique, not_null]
